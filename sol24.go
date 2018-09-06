@@ -20,7 +20,7 @@ func (i intArg) String() string {
 func (i intArg) AsArg() string {
 	return i.String()
 }
-func (i intArg) intArg() int {
+func (i intArg) Int() int {
 	return int(i)
 }
 
@@ -35,20 +35,20 @@ func (e exprArg) String() string {
 func (e exprArg) AsArg() string {
 	return "(" + e.String() + ")"
 }
-func (e exprArg) intArg() int {
+func (e exprArg) Int() int {
 	return e.Value
 }
 
-type step []Arg
+type step []arg
 
-func (s step) Extract(idx int) (Arg, step) {
+func (s step) Extract(idx int) (arg, step) {
 	var result step
-	for i, x := range a {
+	for i, x := range s {
 		if i != idx {
 			result = append(result, x)
 		}
 	}
-	return a[idx], result
+	return s[idx], result
 }
 
 func (s step) IsDone(want int) (step, bool) {
@@ -56,7 +56,7 @@ func (s step) IsDone(want int) (step, bool) {
 		return nil, true
 	}
 	if len(s) == 1 {
-		if s[0].intArg() == want {
+		if s[0].Int() == want {
 			return s, true
 		}
 		return nil, true
@@ -64,13 +64,13 @@ func (s step) IsDone(want int) (step, bool) {
 	return nil, false
 }
 
-func (s step) Clone(a Arg) step {
+func (s step) Clone(a arg) step {
 	return append(step{a}, s...)
 }
 
-func (s step) Nextsteps(a, b Arg) []step {
-	ai := a.intArg()
-	bi := b.intArg()
+func (s step) Nextsteps(a, b arg) []step {
+	ai := a.Int()
+	bi := b.Int()
 	as := a.AsArg()
 	bs := b.AsArg()
 	result := []step{
@@ -128,5 +128,5 @@ func main() {
 		os.Exit(1)
 	}
 	init := args[1:]
-	fmt.Println("result:", init.Solve(args[0].intArg()))
+	fmt.Println("result:", init.Solve(args[0].Int()))
 }
