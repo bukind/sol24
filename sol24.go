@@ -6,43 +6,43 @@ import (
 	"strconv"
 )
 
-type Arg interface {
+type arg interface {
 	String() string
 	Int() int
 	AsArg() string
 }
 
-type Int int
+type intArg int
 
-func (i Int) String() string {
+func (i intArg) String() string {
 	return fmt.Sprintf("%d", i)
 }
-func (i Int) AsArg() string {
+func (i intArg) AsArg() string {
 	return i.String()
 }
-func (i Int) Int() int {
+func (i intArg) intArg() int {
 	return int(i)
 }
 
-type Expr struct {
+type exprArg struct {
 	Value int
 	Str   string
 }
 
-func (e Expr) String() string {
+func (e exprArg) String() string {
 	return e.Str
 }
-func (e Expr) AsArg() string {
+func (e exprArg) AsArg() string {
 	return "(" + e.String() + ")"
 }
-func (e Expr) Int() int {
+func (e exprArg) intArg() int {
 	return e.Value
 }
 
-type Step []Arg
+type step []Arg
 
-func (a Step) Extract(idx int) (Arg, Step) {
-	var result Step
+func (s step) Extract(idx int) (Arg, step) {
+	var result step
 	for i, x := range a {
 		if i != idx {
 			result = append(result, x)
@@ -51,12 +51,12 @@ func (a Step) Extract(idx int) (Arg, Step) {
 	return a[idx], result
 }
 
-func (s Step) IsDone(want int) (Step, bool) {
+func (s step) IsDone(want int) (step, bool) {
 	if len(s) == 0 {
 		return nil, true
 	}
 	if len(s) == 1 {
-		if s[0].Int() == want {
+		if s[0].intArg() == want {
 			return s, true
 		}
 		return nil, true
@@ -64,34 +64,34 @@ func (s Step) IsDone(want int) (Step, bool) {
 	return nil, false
 }
 
-func (s Step) Clone(a Arg) Step {
-	return append(Step{a}, s...)
+func (s step) Clone(a Arg) step {
+	return append(step{a}, s...)
 }
 
-func (s Step) NextSteps(a, b Arg) []Step {
-	ai := a.Int()
-	bi := b.Int()
+func (s step) Nextsteps(a, b Arg) []step {
+	ai := a.intArg()
+	bi := b.intArg()
 	as := a.AsArg()
 	bs := b.AsArg()
-	result := []Step{
-		s.Clone(Expr{ai + bi, as + "+" + bs}),
-		s.Clone(Expr{ai * bi, as + "*" + bs}),
+	result := []step{
+		s.Clone(exprArg{ai + bi, as + "+" + bs}),
+		s.Clone(exprArg{ai * bi, as + "*" + bs}),
 	}
 	if ai > bi {
-		result = append(result, s.Clone(Expr{ai - bi, as + "-" + bs}))
+		result = append(result, s.Clone(exprArg{ai - bi, as + "-" + bs}))
 		if bi != 0 && ai/bi*bi == ai {
-			result = append(result, s.Clone(Expr{ai / bi, as + "/" + bs}))
+			result = append(result, s.Clone(exprArg{ai / bi, as + "/" + bs}))
 		}
 	} else {
-		result = append(result, s.Clone(Expr{bi - ai, bs + "-" + as}))
+		result = append(result, s.Clone(exprArg{bi - ai, bs + "-" + as}))
 		if ai != 0 && bi/ai*ai == bi {
-			result = append(result, s.Clone(Expr{bi / ai, bs + "/" + as}))
+			result = append(result, s.Clone(exprArg{bi / ai, bs + "/" + as}))
 		}
 	}
 	return result
 }
 
-func (s Step) Solve(want int) Step {
+func (s step) Solve(want int) step {
 	if res, ok := s.IsDone(want); ok {
 		return res
 	}
@@ -100,7 +100,7 @@ func (s Step) Solve(want int) Step {
 		arg1, baselist := s.Extract(i)
 		for j := i; j < len(baselist); j++ {
 			arg2, args := baselist.Extract(j)
-			steps := args.NextSteps(arg1, arg2)
+			steps := args.Nextsteps(arg1, arg2)
 			fmt.Println(steps)
 			for _, step := range steps {
 				res := step.Solve(want)
@@ -114,19 +114,19 @@ func (s Step) Solve(want int) Step {
 }
 
 func main() {
-	var args Step
+	var args step
 	for _, a := range os.Args[1:] {
 		arg, err := strconv.ParseUint(a, 10, 32)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Want positive integer, got %q\n", a)
 			os.Exit(1)
 		}
-		args = append(args, Int(int(arg)))
+		args = append(args, intArg(int(arg)))
 	}
 	if len(args) < 3 {
 		fmt.Fprintf(os.Stderr, "At least 3 arguments are required\n")
 		os.Exit(1)
 	}
 	init := args[1:]
-	fmt.Println("result:", init.Solve(args[0].Int()))
+	fmt.Println("result:", init.Solve(args[0].intArg()))
 }
